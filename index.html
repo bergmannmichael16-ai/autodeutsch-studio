@@ -1,0 +1,1748 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Telegram Studio — Авто в Германии</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap');
+
+:root {
+  --bg: #0c0c0f;
+  --surface: #141418;
+  --surface2: #1c1c22;
+  --border: #26262e;
+  --accent: #00e5a0;
+  --accent2: #ff6b35;
+  --accent3: #7b61ff;
+  --text: #e8e8f0;
+  --muted: #6b6b80;
+  --danger: #ff4466;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'DM Sans', sans-serif;
+  min-height: 100vh;
+}
+
+/* Noise texture overlay */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 9999;
+  opacity: 0.4;
+}
+
+/* Layout */
+.app {
+  display: grid;
+  grid-template-columns: 220px 1fr 340px;
+  grid-template-rows: 56px 1fr;
+  height: 100vh;
+  overflow: hidden;
+}
+
+@media (max-width: 1000px) {
+  .app {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto;
+    height: auto;
+    overflow: auto;
+  }
+  .sidebar, .preview-panel { display: none; }
+}
+
+/* Topbar */
+.topbar {
+  grid-column: 1 / -1;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  padding: 0 20px;
+  gap: 16px;
+}
+
+.logo {
+  font-family: 'Space Mono', monospace;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--accent);
+  letter-spacing: -0.5px;
+  white-space: nowrap;
+}
+
+.logo span { color: var(--muted); }
+
+.topbar-tabs {
+  display: flex;
+  gap: 2px;
+  margin-left: 20px;
+}
+
+.tab-btn {
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  padding: 6px 14px;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.15s;
+}
+
+.tab-btn.active {
+  background: var(--surface2);
+  color: var(--text);
+}
+
+.tab-btn:hover:not(.active) { color: var(--text); }
+
+.topbar-right {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 8px var(--accent);
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+.status-text {
+  font-size: 12px;
+  color: var(--muted);
+  font-family: 'Space Mono', monospace;
+}
+
+/* Sidebar */
+.sidebar {
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  padding: 16px 12px;
+  overflow-y: auto;
+}
+
+.sidebar-section {
+  margin-bottom: 24px;
+}
+
+.sidebar-label {
+  font-family: 'Space Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 2px;
+  color: var(--muted);
+  text-transform: uppercase;
+  margin-bottom: 8px;
+  padding: 0 4px;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--muted);
+  transition: all 0.15s;
+  margin-bottom: 2px;
+}
+
+.nav-item:hover { background: var(--surface2); color: var(--text); }
+.nav-item.active { background: rgba(0,229,160,0.1); color: var(--accent); }
+
+.nav-icon { font-size: 14px; width: 18px; text-align: center; }
+
+/* Main content */
+.main {
+  overflow-y: auto;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Tabs content */
+.tab-content { display: none; }
+.tab-content.active { display: flex; flex-direction: column; gap: 16px; }
+
+/* Cards */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 20px;
+}
+
+.card-title {
+  font-family: 'Space Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 2px;
+  color: var(--muted);
+  text-transform: uppercase;
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.card-title::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+/* Topic grid */
+.topic-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 6px;
+}
+
+.topic-chip {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.15s;
+  color: var(--text);
+  text-align: center;
+}
+
+.topic-chip:hover { border-color: var(--accent); color: var(--accent); }
+.topic-chip.active {
+  background: rgba(0,229,160,0.12);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* Options row */
+.options-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.opt-btn {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 6px 14px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.15s;
+  color: var(--muted);
+}
+
+.opt-btn.active {
+  border-color: var(--accent3);
+  color: var(--accent3);
+  background: rgba(123,97,255,0.1);
+}
+
+/* Toggle */
+.toggle-list { display: flex; flex-direction: column; gap: 2px; }
+
+.toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  border-radius: 6px;
+  transition: background 0.15s;
+}
+
+.toggle-row:hover { background: var(--surface2); }
+
+.toggle-info { flex: 1; }
+.toggle-name { font-size: 13px; }
+.toggle-desc { font-size: 11px; color: var(--muted); margin-top: 1px; }
+
+.toggle {
+  width: 36px;
+  height: 20px;
+  border-radius: 10px;
+  background: var(--border);
+  position: relative;
+  cursor: pointer;
+  transition: background 0.2s;
+  flex-shrink: 0;
+}
+
+.toggle.on { background: var(--accent); }
+.toggle::after {
+  content: '';
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: white;
+  top: 3px;
+  left: 3px;
+  transition: left 0.2s;
+}
+.toggle.on::after { left: 19px; }
+
+/* Custom topic input */
+.custom-topic-input {
+  width: 100%;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px;
+  padding: 10px 14px;
+  outline: none;
+  transition: border-color 0.15s;
+  margin-top: 8px;
+  display: none;
+}
+
+.custom-topic-input:focus { border-color: var(--accent); }
+.custom-topic-input::placeholder { color: var(--muted); }
+
+/* Generate button */
+.generate-btn {
+  width: 100%;
+  background: var(--accent);
+  color: #000;
+  font-family: 'Space Mono', monospace;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  padding: 14px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.generate-btn:hover { background: #00ffb3; transform: translateY(-1px); }
+.generate-btn:disabled { background: var(--border); color: var(--muted); cursor: not-allowed; transform: none; }
+
+.generate-btn .spinner {
+  display: none;
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(0,0,0,0.3);
+  border-top-color: #000;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+.generate-btn.loading .btn-label { display: none; }
+.generate-btn.loading .spinner { display: block; }
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Result output */
+.result-box {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 16px;
+  display: none;
+  position: relative;
+}
+
+.result-box.visible { display: block; animation: fadeIn 0.3s ease; }
+
+@keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+.result-actions {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.action-btn {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text);
+  font-size: 11px;
+  padding: 5px 12px;
+  cursor: pointer;
+  transition: all 0.15s;
+  font-family: 'DM Sans', sans-serif;
+}
+
+.action-btn:hover { border-color: var(--accent); color: var(--accent); }
+.action-btn.copied { border-color: var(--accent); color: var(--accent); }
+
+.post-output {
+  font-size: 14px;
+  line-height: 1.7;
+  white-space: pre-wrap;
+  color: #ccc;
+}
+
+/* Image generation */
+.hf-setup {
+  background: rgba(255,107,53,0.08);
+  border: 1px solid rgba(255,107,53,0.25);
+  border-radius: 6px;
+  padding: 14px 16px;
+  margin-bottom: 12px;
+}
+
+.hf-setup-title {
+  font-family: 'Space Mono', monospace;
+  font-size: 10px;
+  color: var(--accent2);
+  letter-spacing: 1px;
+  margin-bottom: 8px;
+}
+
+.hf-steps {
+  font-size: 12px;
+  color: #aaa;
+  line-height: 1.8;
+}
+
+.hf-steps a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.hf-steps a:hover { text-decoration: underline; }
+
+.api-key-input {
+  width: 100%;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  font-family: 'Space Mono', monospace;
+  font-size: 12px;
+  padding: 10px 14px;
+  outline: none;
+  transition: border-color 0.15s;
+  margin-top: 8px;
+}
+
+.api-key-input:focus { border-color: var(--accent2); }
+.api-key-input::placeholder { color: var(--muted); }
+
+.img-prompt-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.img-prompt-input {
+  flex: 1;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  padding: 10px 14px;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.img-prompt-input:focus { border-color: var(--accent3); }
+.img-prompt-input::placeholder { color: var(--muted); }
+
+.img-gen-btn {
+  background: var(--accent3);
+  border: none;
+  border-radius: 6px;
+  color: white;
+  font-family: 'Space Mono', monospace;
+  font-size: 11px;
+  padding: 10px 16px;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+
+.img-gen-btn:hover { background: #9b82ff; }
+.img-gen-btn:disabled { background: var(--border); color: var(--muted); cursor: not-allowed; }
+
+/* Image presets */
+.preset-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.preset-btn {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px;
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.15s;
+  color: var(--text);
+  text-align: center;
+}
+
+.preset-btn:hover { border-color: var(--accent3); color: var(--accent3); }
+.preset-btn.active { border-color: var(--accent3); background: rgba(123,97,255,0.1); color: var(--accent3); }
+
+/* Image result */
+.img-result {
+  display: none;
+  margin-top: 12px;
+  border-radius: 6px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+
+.img-result.visible { display: block; animation: fadeIn 0.3s ease; }
+
+.img-result img {
+  width: 100%;
+  display: block;
+}
+
+.img-actions {
+  display: flex;
+  gap: 6px;
+  padding: 10px;
+  background: var(--surface2);
+}
+
+/* Schedule tab */
+.schedule-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+  margin-bottom: 12px;
+}
+
+.day-btn {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 6px 4px;
+  font-size: 11px;
+  cursor: pointer;
+  text-align: center;
+  color: var(--muted);
+  transition: all 0.15s;
+}
+
+.day-btn.active { border-color: var(--accent); color: var(--accent); background: rgba(0,229,160,0.08); }
+
+.time-select {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  padding: 8px 12px;
+  outline: none;
+  width: 100%;
+  margin-bottom: 8px;
+  cursor: pointer;
+}
+
+/* Queue */
+.queue-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 6px;
+  background: var(--surface2);
+  margin-bottom: 6px;
+  border: 1px solid var(--border);
+}
+
+.queue-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.queue-dot.pending { background: var(--accent2); }
+.queue-dot.ready { background: var(--accent); }
+
+.queue-info { flex: 1; }
+.queue-title { font-size: 12px; }
+.queue-time { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+.queue-remove {
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+  padding: 2px 4px;
+  border-radius: 3px;
+  transition: all 0.15s;
+}
+
+.queue-remove:hover { color: var(--danger); background: rgba(255,68,102,0.1); }
+
+/* Settings tab */
+.settings-group { margin-bottom: 20px; }
+
+.settings-group-title {
+  font-family: 'Space Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 2px;
+  color: var(--muted);
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+.settings-input {
+  width: 100%;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  padding: 10px 14px;
+  outline: none;
+  transition: border-color 0.15s;
+  margin-bottom: 8px;
+}
+
+.settings-input:focus { border-color: var(--accent); }
+.settings-input::placeholder { color: var(--muted); }
+
+.save-btn {
+  background: transparent;
+  border: 1px solid var(--accent);
+  border-radius: 6px;
+  color: var(--accent);
+  font-family: 'Space Mono', monospace;
+  font-size: 11px;
+  padding: 8px 20px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.save-btn:hover { background: var(--accent); color: #000; }
+
+/* Preview panel */
+.preview-panel {
+  background: var(--surface);
+  border-left: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.preview-header {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+  font-family: 'Space Mono', monospace;
+  font-size: 10px;
+  color: var(--muted);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.tg-mock {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: #17212b;
+}
+
+.tg-message {
+  background: #2b5278;
+  border-radius: 12px 12px 12px 3px;
+  padding: 10px 14px;
+  max-width: 90%;
+  animation: fadeIn 0.3s ease;
+}
+
+.tg-channel-name {
+  font-size: 11px;
+  font-weight: 700;
+  color: #5bbbf5;
+  margin-bottom: 6px;
+  font-family: 'DM Sans', sans-serif;
+}
+
+.tg-text {
+  font-size: 13px;
+  line-height: 1.5;
+  color: #e0e0e0;
+  white-space: pre-wrap;
+  font-family: 'DM Sans', sans-serif;
+  word-break: break-word;
+}
+
+.tg-time {
+  font-size: 10px;
+  color: rgba(255,255,255,0.35);
+  text-align: right;
+  margin-top: 6px;
+}
+
+.tg-img {
+  width: 100%;
+  border-radius: 8px;
+  margin-bottom: 6px;
+  display: none;
+}
+
+.tg-placeholder {
+  text-align: center;
+  color: var(--muted);
+  font-size: 13px;
+  padding: 40px 20px;
+  line-height: 1.6;
+}
+
+/* Error */
+.error-msg {
+  background: rgba(255,68,102,0.1);
+  border: 1px solid rgba(255,68,102,0.3);
+  border-radius: 6px;
+  color: var(--danger);
+  padding: 10px 14px;
+  font-size: 12px;
+  display: none;
+  margin-top: 8px;
+}
+
+.error-msg.visible { display: block; }
+
+/* Stats row */
+.stats-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.stat-card {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 12px;
+  text-align: center;
+}
+
+.stat-val {
+  font-family: 'Space Mono', monospace;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.stat-lbl {
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 4px;
+}
+
+/* Loading bar */
+.loading-bar {
+  height: 2px;
+  background: var(--border);
+  border-radius: 1px;
+  overflow: hidden;
+  margin-top: 8px;
+  display: none;
+}
+
+.loading-bar.visible { display: block; }
+
+.loading-bar-inner {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent), var(--accent3));
+  border-radius: 1px;
+  animation: loadAnim 1.5s ease infinite;
+}
+
+@keyframes loadAnim {
+  0% { width: 0%; margin-left: 0%; }
+  50% { width: 60%; margin-left: 20%; }
+  100% { width: 0%; margin-left: 100%; }
+}
+</style>
+</head>
+<body>
+
+<div class="app">
+  <!-- Topbar -->
+  <div class="topbar">
+    <div class="logo">TELEGRAM<span>_</span>STUDIO</div>
+    <div class="topbar-tabs">
+      <button class="tab-btn active" onclick="switchTab('post')">✍️ Пост</button>
+      <button class="tab-btn" onclick="switchTab('image')">🖼️ Картинка</button>
+      <button class="tab-btn" onclick="switchTab('schedule')">📅 Расписание</button>
+      <button class="tab-btn" onclick="switchTab('comments')">💬 Комментарии</button>
+      <button class="tab-btn" onclick="switchTab('settings')">⚙️ Настройки</button>
+    </div>
+    <div class="topbar-right">
+      <div class="status-dot"></div>
+      <div class="status-text" id="statusText">READY</div>
+    </div>
+  </div>
+
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <div class="sidebar-section">
+      <div class="sidebar-label">Контент</div>
+      <div class="nav-item active" onclick="switchTab('post')"><span class="nav-icon">✍️</span>Генератор постов</div>
+      <div class="nav-item" onclick="switchTab('image')"><span class="nav-icon">🖼️</span>Генератор картинок</div>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-label">Публикация</div>
+      <div class="nav-item" onclick="switchTab('schedule')"><span class="nav-icon">📅</span>Расписание</div>
+      <div class="nav-item" onclick="switchTab('comments')"><span class="nav-icon">💬</span>Генератор комментариев</div>
+      <div class="nav-item" onclick="switchTab('settings')"><span class="nav-icon">⚙️</span>Настройки</div>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-label">Статистика</div>
+      <div class="stats-row" style="flex-direction:column; gap:6px;">
+        <div class="stat-card">
+          <div class="stat-val" id="sideStatPosts">0</div>
+          <div class="stat-lbl">Постов создано</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-val" id="sideStatImgs">0</div>
+          <div class="stat-lbl">Картинок создано</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-val" id="sideStatQueue">0</div>
+          <div class="stat-lbl">В очереди</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main -->
+  <div class="main">
+
+    <!-- POST TAB -->
+    <div class="tab-content active" id="tab-post">
+      <div class="card">
+        <div class="card-title">Тема поста</div>
+        <div class="topic-grid" id="topicGrid">
+          <div class="topic-chip active" data-topic="Страховка Haftpflicht vs Kasko в Германии">🛡️ Страховки</div>
+          <div class="topic-chip" data-topic="Как купить б/у авто в Германии и не попасть">🔍 Покупка авто</div>
+          <div class="topic-chip" data-topic="Как пройти TÜV без стресса — советы">🔧 TÜV / HU</div>
+          <div class="topic-chip" data-topic="Как легально сэкономить на страховке авто">💰 Экономия</div>
+          <div class="topic-chip" data-topic="Электромобили в Германии — стоит ли брать в 2025">⚡ Электро</div>
+          <div class="topic-chip" data-topic="Автокредит в Германии — как взять выгодно">🏦 Кредит</div>
+          <div class="topic-chip" data-topic="Лучшие сайты для поиска авто в Германии — Mobile.de vs AutoScout24">🌐 Маркетплейсы</div>
+          <div class="topic-chip" data-topic="Ноябрь — сезон смены страховки в Германии">📅 Ноябрь</div>
+          <div class="topic-chip" data-topic="Штрафы за вождение в Германии — что нужно знать">⚠️ Штрафы</div>
+          <div class="topic-chip" data-topic="custom">✏️ Своя тема</div>
+        </div>
+        <input type="text" class="custom-topic-input" id="customTopicInput" placeholder="Введи свою тему...">
+      </div>
+
+      <div class="card">
+        <div class="card-title">Стиль</div>
+        <div class="options-row" id="toneOptions">
+          <button class="opt-btn active" data-tone="дружелюбный и простой, как совет другу">😊 Дружелюбно</button>
+          <button class="opt-btn" data-tone="экспертный и авторитетный">🎓 Экспертно</button>
+          <button class="opt-btn" data-tone="с лёгким юмором">😄 С юмором</button>
+          <button class="opt-btn" data-tone="срочный — важно знать прямо сейчас">⚡ Срочно</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Опции</div>
+        <div class="toggle-list">
+          <div class="toggle-row">
+            <div class="toggle-info">
+              <div class="toggle-name">Партнёрская ссылка Tarifcheck</div>
+              <div class="toggle-desc">Добавит CTA + место для ссылки</div>
+            </div>
+            <div class="toggle on" id="t-affiliate"></div>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-info">
+              <div class="toggle-name">Эмодзи</div>
+              <div class="toggle-desc">Структурируют текст визуально</div>
+            </div>
+            <div class="toggle on" id="t-emoji"></div>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-info">
+              <div class="toggle-name">Призыв к подписке</div>
+              <div class="toggle-desc">Добавит в конец поста</div>
+            </div>
+            <div class="toggle" id="t-subscribe"></div>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-info">
+              <div class="toggle-name">Добавить в очередь автоматически</div>
+              <div class="toggle-desc">Пост попадёт в расписание публикаций</div>
+            </div>
+            <div class="toggle" id="t-queue"></div>
+          </div>
+        </div>
+      </div>
+
+      <button class="generate-btn" id="genPostBtn">
+        <span class="btn-label">⚡ Сгенерировать пост</span>
+        <div class="spinner"></div>
+      </button>
+
+      <div class="loading-bar" id="postLoadBar"><div class="loading-bar-inner"></div></div>
+      <div class="error-msg" id="postError"></div>
+
+      <div class="result-box" id="postResult">
+        <div class="result-actions">
+          <button class="action-btn" id="copyPostBtn">📋 Копировать</button>
+          <button class="action-btn" id="publishTgBtn">🚀 Опубликовать в канал</button>
+          <button class="action-btn" id="addToQueueBtn">📅 В расписание</button>
+          <button class="action-btn" id="regen-btn">🔄 Перегенерировать</button>
+        </div>
+        <div class="error-msg" id="publishError"></div>
+        <div id="publishSuccess" style="display:none; background:rgba(0,229,160,0.1); border:1px solid rgba(0,229,160,0.3); border-radius:6px; padding:10px 14px; font-size:12px; color:var(--accent); margin-top:8px;">✅ Пост опубликован в канале!</div>
+        <div class="post-output" id="postOutput"></div>
+      </div>
+    </div>
+
+    <!-- IMAGE TAB -->
+    <div class="tab-content" id="tab-image">
+      <div class="card">
+        <div class="hf-setup" style="background:rgba(0,229,160,0.08); border-color:rgba(0,229,160,0.3)">
+          <div class="hf-setup-title" style="color:var(--accent)">✅ БЕЗ API КЛЮЧА — РАБОТАЕТ СРАЗУ</div>
+          <div class="hf-steps">
+            Используем <strong style="color:var(--accent)">Pollinations AI</strong> — полностью бесплатно, без регистрации, без ключей.<br>
+            Просто выбери пресет и нажми "Создать" 👇
+          </div>
+        </div>
+
+        <div class="card-title">Пресеты для авто-канала</div>
+        <div class="preset-grid" id="imgPresets">
+          <div class="preset-btn active" data-prompt="modern car on German autobahn, dramatic sky, cinematic photography, high quality">🛣️ Автобан</div>
+          <div class="preset-btn" data-prompt="car insurance document with German flag, professional photo, clean background">📋 Страховка</div>
+          <div class="preset-btn" data-prompt="TÜV car inspection workshop Germany, mechanic checking car, realistic photo">🔧 TÜV осмотр</div>
+          <div class="preset-btn" data-prompt="electric car charging in Germany, modern charging station, green energy">⚡ Электро</div>
+          <div class="preset-btn" data-prompt="German car dealership interior, luxury cars on display, showroom lighting">🏢 Автосалон</div>
+          <div class="preset-btn" data-prompt="coins and car keys on table, saving money concept, Germany flag, professional photo">💰 Экономия</div>
+        </div>
+
+        <div class="card-title">Свой промпт</div>
+        <div class="img-prompt-row">
+          <input type="text" class="img-prompt-input" id="imgPromptInput" placeholder="Опиши картинку на английском...">
+          <button class="img-gen-btn" id="genImgBtn">🖼️ Создать</button>
+        </div>
+        <div class="loading-bar" id="imgLoadBar" style="margin-top:8px"><div class="loading-bar-inner"></div></div>
+        <div class="error-msg" id="imgError"></div>
+      </div>
+
+      <div class="img-result" id="imgResult">
+        <img id="generatedImg" src="" alt="Generated image">
+        <div class="img-actions">
+          <button class="action-btn" id="downloadImgBtn">⬇️ Скачать</button>
+          <button class="action-btn" id="useWithPostBtn">📝 Использовать с постом</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Лайфхак — без API</div>
+        <div style="font-size:13px; color:#aaa; line-height:1.7">
+          Если не хочешь возиться с API, используй эти бесплатные сервисы прямо в браузере:<br><br>
+          🎨 <a href="https://ideogram.ai" target="_blank" style="color:var(--accent)">ideogram.ai</a> — лучший для текста на картинке<br>
+          🖼️ <a href="https://leonardo.ai" target="_blank" style="color:var(--accent)">leonardo.ai</a> — $5 стартовый кредит, без карты<br>
+          ⚡ <a href="https://flux1.ai" target="_blank" style="color:var(--accent)">flux1.ai</a> — бесплатно, без регистрации<br>
+          🤗 <a href="https://huggingface.co/spaces/black-forest-labs/FLUX.1-schnell" target="_blank" style="color:var(--accent)">HF Spaces FLUX</a> — полностью бесплатно
+        </div>
+      </div>
+    </div>
+
+    <!-- SCHEDULE TAB -->
+    <div class="tab-content" id="tab-schedule">
+      <div class="card">
+        <div class="card-title">Дни публикации</div>
+        <div class="schedule-grid" id="dayGrid">
+          <div class="day-btn active" data-day="Пн">Пн</div>
+          <div class="day-btn active" data-day="Вт">Вт</div>
+          <div class="day-btn active" data-day="Ср">Ср</div>
+          <div class="day-btn active" data-day="Чт">Чт</div>
+          <div class="day-btn active" data-day="Пт">Пт</div>
+          <div class="day-btn" data-day="Сб">Сб</div>
+          <div class="day-btn" data-day="Вс">Вс</div>
+        </div>
+
+        <div class="card-title" style="margin-top:16px">Время публикации</div>
+        <select class="time-select" id="postTime">
+          <option value="08:00">08:00 — Утро (хорошая открываемость)</option>
+          <option value="12:00">12:00 — Обед</option>
+          <option value="18:00" selected>18:00 — Вечер (лучшее время!)</option>
+          <option value="20:00">20:00 — Поздний вечер</option>
+        </select>
+
+        <button class="generate-btn" id="autoGenBtn" style="background:var(--accent3)">
+          <span class="btn-label">🤖 Авто-генерация для недели</span>
+          <div class="spinner"></div>
+        </button>
+        <div class="loading-bar" id="schedLoadBar"><div class="loading-bar-inner"></div></div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Очередь публикаций</div>
+        <div id="queueList">
+          <div style="text-align:center; color:var(--muted); font-size:13px; padding:20px">
+            Очередь пуста. Создай посты и добавь их сюда.
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Автопостинг в Telegram</div>
+        <div style="font-size:13px; color:#aaa; line-height:1.8">
+          Для автоматической публикации в канал нужно:<br><br>
+          <strong style="color:var(--text)">Шаг 1</strong> — Создай бота через <a href="https://t.me/BotFather" target="_blank" style="color:var(--accent)">@BotFather</a><br>
+          <strong style="color:var(--text)">Шаг 2</strong> — Добавь бота в канал как админа<br>
+          <strong style="color:var(--text)">Шаг 3</strong> — Вставь Bot Token в настройках ниже<br>
+          <strong style="color:var(--text)">Шаг 4</strong> — Нажми "Опубликовать" на любом посте<br><br>
+          <span style="color:var(--accent)">Или используй n8n.io</span> — бесплатный планировщик автопостинга
+        </div>
+      </div>
+    </div>
+
+    <!-- COMMENTS TAB -->
+    <div class="tab-content" id="tab-comments">
+      <div class="card">
+        <div class="hf-setup" style="background:rgba(123,97,255,0.08); border-color:rgba(123,97,255,0.3)">
+          <div class="hf-setup-title" style="color:var(--accent3)">💬 КАК ЭТО РАБОТАЕТ</div>
+          <div class="hf-steps">
+            ИИ генерирует полезный комментарий на тему обсуждения в группе.<br>
+            Ты публикуешь его вручную — выглядит естественно, люди переходят в канал.<br>
+            15-20 минут в день → стабильный поток подписчиков.
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Тема обсуждения в группе</div>
+        <div class="topic-grid" id="commentTopicGrid">
+          <div class="topic-chip active" data-topic="Какую страховку выбрать для машины в Германии">🛡️ Страховка</div>
+          <div class="topic-chip" data-topic="Где лучше купить б/у авто в Германии">🔍 Где купить</div>
+          <div class="topic-chip" data-topic="Как подготовиться к TÜV">🔧 TÜV</div>
+          <div class="topic-chip" data-topic="Стоит ли брать электромобиль в Германии">⚡ Электро</div>
+          <div class="topic-chip" data-topic="Как сэкономить на авто в Германии">💰 Экономия</div>
+          <div class="topic-chip" data-topic="Автокредит в Германии — опыт">🏦 Кредит</div>
+          <div class="topic-chip" data-topic="custom-comment">✏️ Своя тема</div>
+        </div>
+        <input type="text" class="custom-topic-input" id="customCommentInput" placeholder="Опиши о чём идёт обсуждение в группе...">
+      </div>
+
+      <div class="card">
+        <div class="card-title">Стиль комментария</div>
+        <div class="options-row" id="commentToneOptions">
+          <button class="opt-btn active" data-tone="полезный совет из личного опыта, коротко">💡 Личный опыт</button>
+          <button class="opt-btn" data-tone="задать уточняющий вопрос и поделиться опытом">❓ Вопрос + опыт</button>
+          <button class="opt-btn" data-tone="краткий экспертный ответ с фактом">🎓 Экспертно</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Упоминание канала</div>
+        <div class="toggle-list">
+          <div class="toggle-row">
+            <div class="toggle-info">
+              <div class="toggle-name">Упомянуть канал в конце</div>
+              <div class="toggle-desc">Добавит ненавязчивую отсылку к каналу</div>
+            </div>
+            <div class="toggle on" id="t-mention"></div>
+          </div>
+        </div>
+      </div>
+
+      <button class="generate-btn" id="genCommentBtn" style="background:var(--accent3)">
+        <span class="btn-label">💬 Сгенерировать комментарий</span>
+        <div class="spinner"></div>
+      </button>
+
+      <div class="loading-bar" id="commentLoadBar"><div class="loading-bar-inner"></div></div>
+      <div class="error-msg" id="commentError"></div>
+
+      <div class="result-box" id="commentResult">
+        <div class="result-actions">
+          <button class="action-btn" id="copyCommentBtn">📋 Копировать</button>
+          <button class="action-btn" id="regenCommentBtn">🔄 Другой вариант</button>
+        </div>
+        <div class="post-output" id="commentOutput"></div>
+      </div>
+
+      <div class="card" style="margin-top:8px">
+        <div class="card-title">Где публиковать — топ группы</div>
+        <div style="font-size:13px; color:#aaa; line-height:2">
+          Ищи в Telegram по запросам:<br>
+          🔍 "Русские в Германии"<br>
+          🔍 "Наши в Германии [город]"<br>
+          🔍 "Авто Германия"<br>
+          🔍 "Русскоязычные [Düsseldorf / Berlin / München]"<br><br>
+          Цель: 5-10 групп, 1-2 комментария в каждой в день
+        </div>
+      </div>
+    </div>
+
+    <!-- SETTINGS TAB -->
+    <div class="tab-content" id="tab-settings">
+      <div class="card">
+        <div class="settings-group">
+          <div class="settings-group-title">Telegram канал</div>
+          <input type="text" class="settings-input" id="channelName" placeholder="Название канала (напр. Авто в Германии)">
+          <input type="text" class="settings-input" id="channelUsername" placeholder="@username канала">
+          <input type="password" class="settings-input" id="botToken" placeholder="Bot Token от @BotFather">
+        </div>
+        <div class="settings-group">
+          <div class="settings-group-title">Партнёрские ссылки</div>
+          <input type="text" class="settings-input" id="tarifcheckLink" placeholder="Ссылка Tarifcheck (из партнёрской программы)">
+          <input type="text" class="settings-input" id="check24Link" placeholder="Ссылка Check24 (если есть)">
+        </div>
+
+        <button class="save-btn" id="saveSettingsBtn">💾 Сохранить настройки</button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Right Panel — Quick Actions -->
+  <div class="preview-panel">
+    <div class="preview-header">⚡ Быстрые действия</div>
+    <div style="padding:16px; overflow-y:auto; flex:1; display:flex; flex-direction:column; gap:12px;">
+
+      <!-- Publish block -->
+      <div style="background:#1c1c22; border:1px solid #26262e; border-radius:8px; padding:16px;">
+        <div style="font-family:'Space Mono',monospace; font-size:9px; letter-spacing:2px; color:#6b6b80; margin-bottom:12px; text-transform:uppercase;">Публикация в канал</div>
+        <div style="font-size:12px; color:#888; margin-bottom:10px; line-height:1.6;">
+          Bot Token и @username канала — в настройках ⚙️
+        </div>
+        <button onclick="document.getElementById('publishTgBtn')?.click()" style="width:100%; background:#00e5a0; color:#000; font-family:'Space Mono',monospace; font-size:11px; font-weight:700; padding:12px; border:none; border-radius:6px; cursor:pointer; letter-spacing:1px;">
+          🚀 ОПУБЛИКОВАТЬ ПОСТ
+        </button>
+        <div id="quickPublishNote" style="font-size:11px; color:#6b6b80; text-align:center; margin-top:8px;">Сначала сгенерируй пост во вкладке ✍️</div>
+      </div>
+
+      <!-- Telegram preview -->
+      <div style="background:#1c1c22; border:1px solid #26262e; border-radius:8px; padding:16px;">
+        <div style="font-family:'Space Mono',monospace; font-size:9px; letter-spacing:2px; color:#6b6b80; margin-bottom:12px; text-transform:uppercase;">📱 Превью в Telegram</div>
+        <div class="tg-mock" id="tgMock" style="border-radius:6px; min-height:180px; padding:12px; background:#17212b;">
+          <div class="tg-placeholder">
+            Сгенерируй пост — он появится здесь
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick stats -->
+      <div style="background:#1c1c22; border:1px solid #26262e; border-radius:8px; padding:16px;">
+        <div style="font-family:'Space Mono',monospace; font-size:9px; letter-spacing:2px; color:#6b6b80; margin-bottom:12px; text-transform:uppercase;">Статистика сессии</div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+          <div style="background:#141418; border-radius:6px; padding:10px; text-align:center;">
+            <div style="font-family:'Space Mono',monospace; font-size:18px; color:#00e5a0;" id="rpStatPosts">0</div>
+            <div style="font-size:10px; color:#6b6b80; margin-top:2px;">Постов</div>
+          </div>
+          <div style="background:#141418; border-radius:6px; padding:10px; text-align:center;">
+            <div style="font-family:'Space Mono',monospace; font-size:18px; color:#7b61ff;" id="rpStatComments">0</div>
+            <div style="font-size:10px; color:#6b6b80; margin-top:2px;">Комментариев</div>
+          </div>
+          <div style="background:#141418; border-radius:6px; padding:10px; text-align:center;">
+            <div style="font-family:'Space Mono',monospace; font-size:18px; color:#ff6b35;" id="rpStatImgs2">0</div>
+            <div style="font-size:10px; color:#6b6b80; margin-top:2px;">Картинок</div>
+          </div>
+          <div style="background:#141418; border-radius:6px; padding:10px; text-align:center;">
+            <div style="font-family:'Space Mono',monospace; font-size:18px; color:#00e5a0;" id="rpStatQueue2">0</div>
+            <div style="font-size:10px; color:#6b6b80; margin-top:2px;">В очереди</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick links -->
+      <div style="background:#1c1c22; border:1px solid #26262e; border-radius:8px; padding:16px;">
+        <div style="font-family:'Space Mono',monospace; font-size:9px; letter-spacing:2px; color:#6b6b80; margin-bottom:12px; text-transform:uppercase;">Быстрые ссылки</div>
+        <div style="display:flex; flex-direction:column; gap:6px;">
+          <a href="https://t.me/BotFather" target="_blank" style="background:#141418; border:1px solid #26262e; border-radius:4px; padding:8px 12px; color:#00e5a0; font-size:12px; text-decoration:none; display:block;">🤖 @BotFather — создать бота</a>
+          <a href="https://tarifcheck-partnerprogramm.de" target="_blank" style="background:#141418; border:1px solid #26262e; border-radius:4px; padding:8px 12px; color:#00e5a0; font-size:12px; text-decoration:none; display:block;">💰 Tarifcheck партнёрка</a>
+          <a href="https://awin.com" target="_blank" style="background:#141418; border:1px solid #26262e; border-radius:4px; padding:8px 12px; color:#00e5a0; font-size:12px; text-decoration:none; display:block;">🔗 Awin партнёрские программы</a>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ── State ──────────────────────────────────────────────────────────
+let state = {
+  topic: 'Страховка Haftpflicht vs Kasko в Германии',
+  tone: 'дружелюбный и простой, как совет другу',
+  affiliate: true, emoji: true, subscribe: false, autoQueue: false,
+  postCount: 0, imgCount: 0,
+  queue: [],
+  lastPost: '',
+  lastImgUrl: '',
+  imgPrompt: ''
+};
+
+// Load saved settings
+const saved = JSON.parse(localStorage.getItem('tg_studio') || '{}');
+if (saved.channelName) document.getElementById('channelName').value = saved.channelName;
+if (saved.tarifcheckLink) document.getElementById('tarifcheckLink').value = saved.tarifcheckLink;
+if (saved.botToken) document.getElementById('botToken').value = saved.botToken;
+if (saved.hfKey) document.getElementById('hfApiKey').value = saved.hfKey;
+
+// ── Tab switching ──────────────────────────────────────────────────
+function switchTab(name) {
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  const idx = ['post','image','schedule','comments','settings'].indexOf(name);
+  document.querySelectorAll('.tab-btn')[idx]?.classList.add('active');
+}
+
+// ── Topics ────────────────────────────────────────────────────────
+document.querySelectorAll('.topic-chip').forEach(chip => {
+  chip.addEventListener('click', () => {
+    document.querySelectorAll('.topic-chip').forEach(c => c.classList.remove('active'));
+    chip.classList.add('active');
+    const customInput = document.getElementById('customTopicInput');
+    if (chip.dataset.topic === 'custom') {
+      customInput.style.display = 'block';
+      customInput.focus();
+      state.topic = customInput.value;
+    } else {
+      customInput.style.display = 'none';
+      state.topic = chip.dataset.topic;
+    }
+  });
+});
+
+document.getElementById('customTopicInput').addEventListener('input', e => {
+  state.topic = e.target.value;
+});
+
+// ── Tone ──────────────────────────────────────────────────────────
+document.querySelectorAll('#toneOptions .opt-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('#toneOptions .opt-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    state.tone = btn.dataset.tone;
+  });
+});
+
+// ── Toggles ───────────────────────────────────────────────────────
+function setupToggle(id, key) {
+  const el = document.getElementById(id);
+  el.addEventListener('click', () => {
+    state[key] = !state[key];
+    el.classList.toggle('on', state[key]);
+  });
+}
+setupToggle('t-affiliate', 'affiliate');
+setupToggle('t-emoji', 'emoji');
+setupToggle('t-subscribe', 'subscribe');
+setupToggle('t-queue', 'autoQueue');
+
+// ── Generate Post ─────────────────────────────────────────────────
+async function generatePost() {
+  if (!state.topic) { showError('postError', 'Выбери тему поста'); return; }
+
+  const btn = document.getElementById('genPostBtn');
+  setLoading(btn, true, 'postLoadBar');
+  document.getElementById('postError').classList.remove('visible');
+  document.getElementById('statusText').textContent = 'GENERATING...';
+
+  const channelName = document.getElementById('channelName').value || 'Авто в Германии';
+  const tarifLink = document.getElementById('tarifcheckLink').value || '[ссылка Tarifcheck]';
+
+  const prompt = `Ты опытный автор Telegram-канала "${channelName}" для русскоязычных в Германии.
+
+Напиши готовый Telegram-пост на тему: "${state.topic}"
+Стиль: ${state.tone}
+
+Требования:
+- 150–250 слов, разговорный русский
+- Цепляющий заголовок → факты → вывод
+- Конкретные немецкие реалии (законы, платформы, сроки)
+- НЕ используй markdown: никаких **, *, _, # и других символов форматирования
+${state.emoji ? '- Используй релевантные эмодзи' : '- Без эмодзи'}
+${state.affiliate ? `- В конце добавь CTA: "Сравни страховки здесь → ${tarifLink}" — как личный совет` : ''}
+${state.subscribe ? `- В самом конце: "Подпишись на @${document.getElementById('channelUsername').value || 'канал'} — каждый день полезное про авто в Германии"` : ''}
+
+Только текст поста, никаких предисловий.`;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'anthropic-dangerous-direct-browser-access': 'true' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error.message);
+    const text = data.content[0].text;
+    state.lastPost = text;
+    state.postCount++;
+    document.getElementById('sideStatPosts').textContent = state.postCount;
+  if(document.getElementById('rpStatPosts')) document.getElementById('rpStatPosts').textContent = state.postCount;
+    document.getElementById('postOutput').textContent = text;
+    document.getElementById('postResult').classList.add('visible');
+    updateTgPreview(text, state.lastImgUrl);
+    if (state.autoQueue) addToQueue(state.topic, text);
+    document.getElementById('statusText').textContent = 'DONE';
+  } catch(e) {
+    showError('postError', 'Ошибка: ' + e.message);
+    document.getElementById('statusText').textContent = 'ERROR';
+  } finally {
+    setLoading(btn, false, 'postLoadBar');
+  }
+}
+
+document.getElementById('genPostBtn').addEventListener('click', generatePost);
+document.getElementById('regen-btn').addEventListener('click', generatePost);
+
+document.getElementById('copyPostBtn').addEventListener('click', () => {
+  navigator.clipboard.writeText(state.lastPost).then(() => {
+    const btn = document.getElementById('copyPostBtn');
+    btn.textContent = '✅ Скопировано!';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = '📋 Копировать'; btn.classList.remove('copied'); }, 2000);
+  });
+});
+
+document.getElementById('addToQueueBtn').addEventListener('click', () => {
+  if (state.lastPost) addToQueue(state.topic, state.lastPost);
+});
+
+// ── Generate Image ────────────────────────────────────────────────
+document.querySelectorAll('.preset-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('imgPromptInput').value = btn.dataset.prompt;
+    state.imgPrompt = btn.dataset.prompt;
+  });
+});
+
+document.getElementById('imgPromptInput').addEventListener('input', e => {
+  state.imgPrompt = e.target.value;
+  document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+});
+
+// ── Generate Image with Pollinations AI (no API key, no CORS) ────
+document.querySelectorAll('.preset-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('imgPromptInput').value = btn.dataset.prompt;
+    state.imgPrompt = btn.dataset.prompt;
+  });
+});
+
+document.getElementById('imgPromptInput').addEventListener('input', e => {
+  state.imgPrompt = e.target.value;
+  document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+});
+
+document.getElementById('genImgBtn').addEventListener('click', () => {
+  const prompt = document.getElementById('imgPromptInput').value.trim() || state.imgPrompt;
+  if (!prompt) { showError('imgError', 'Выбери пресет или введи описание картинки'); return; }
+
+  const btn = document.getElementById('genImgBtn');
+  btn.disabled = true;
+  btn.textContent = '⏳ Создаю...';
+  document.getElementById('imgError').classList.remove('visible');
+  document.getElementById('imgLoadBar').classList.add('visible');
+  document.getElementById('statusText').textContent = 'GENERATING IMG...';
+  document.getElementById('imgResult').classList.remove('visible');
+
+  // Генерируем ссылку для открытия в браузере
+  const encodedPrompt = encodeURIComponent(prompt + ', high quality, professional photo, automotive');
+  const seed = Math.floor(Math.random() * 99999);
+  const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1024&height=576&seed=${seed}&nologo=true&enhance=true`;
+  
+  state.lastImgUrl = imageUrl;
+  state.imgCount++;
+  document.getElementById('sideStatImgs').textContent = state.imgCount;
+  if(document.getElementById('rpStatImgs2')) document.getElementById('rpStatImgs2').textContent = state.imgCount;
+  
+  // Показываем результат с кнопкой открыть
+  document.getElementById('imgResult').classList.add('visible');
+  document.getElementById('generatedImg').style.display = 'none';
+  
+  // Показываем ссылку-превью
+  let linkBox = document.getElementById('imgLinkBox');
+  if (!linkBox) {
+    linkBox = document.createElement('div');
+    linkBox.id = 'imgLinkBox';
+    linkBox.style.cssText = 'padding:16px; text-align:center; background:var(--surface); border-radius:6px;';
+    document.getElementById('imgResult').insertBefore(linkBox, document.getElementById('imgResult').firstChild);
+  }
+  linkBox.innerHTML = `
+    <div style="font-size:13px; color:var(--muted); margin-bottom:12px">✅ Картинка готова! Открой в новой вкладке:</div>
+    <a href="${imageUrl}" target="_blank" style="
+      display:inline-block;
+      background:var(--accent);
+      color:#000;
+      font-family:'Space Mono',monospace;
+      font-size:11px;
+      font-weight:700;
+      padding:10px 20px;
+      border-radius:4px;
+      text-decoration:none;
+      letter-spacing:1px;
+      margin-bottom:10px;
+    ">🖼️ ОТКРЫТЬ КАРТИНКУ</a>
+    <div style="font-size:11px; color:var(--muted); margin-top:8px">В браузере: правая кнопка → "Сохранить изображение"</div>
+    <div style="font-size:10px; color:#555; margin-top:4px; word-break:break-all;">${imageUrl.slice(0,80)}...</div>
+  `;
+  
+  document.getElementById('statusText').textContent = 'IMG READY ✓';
+  btn.disabled = false;
+  btn.textContent = '🖼️ Создать';
+  document.getElementById('imgLoadBar').classList.remove('visible');
+
+});
+
+document.getElementById('downloadImgBtn').addEventListener('click', () => {
+  if (!state.lastImgUrl) return;
+  // Open in new tab (Pollinations images are external URLs)
+  window.open(state.lastImgUrl, '_blank');
+});
+
+document.getElementById('useWithPostBtn').addEventListener('click', () => {
+  switchTab('post');
+  if (state.lastPost) updateTgPreview(state.lastPost, state.lastImgUrl);
+});
+
+// ── Auto generate week ────────────────────────────────────────────
+const weekTopics = [
+  'Haftpflicht vs Kasko — что выбрать для вашей ситуации',
+  'Топ 5 ошибок при покупке б/у авто в Германии',
+  'Как пройти TÜV с первого раза — чек-лист',
+  'Как сэкономить на страховке авто легально',
+  'Лучшие сайты для покупки авто в Германии',
+];
+
+document.getElementById('autoGenBtn').addEventListener('click', async () => {
+  const btn = document.getElementById('autoGenBtn');
+  setLoading(btn, true, 'schedLoadBar');
+  document.getElementById('statusText').textContent = 'AUTO-GENERATING...';
+
+  const activeDays = [...document.querySelectorAll('.day-btn.active')].map(d => d.dataset.day);
+  const time = document.getElementById('postTime').value;
+
+  let generated = 0;
+  for (let i = 0; i < Math.min(activeDays.length, weekTopics.length); i++) {
+    try {
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'anthropic-dangerous-direct-browser-access': 'true' },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 800,
+          messages: [{
+            role: 'user',
+            content: `Напиши короткий Telegram-пост (100-150 слов) для русскоязычных в Германии на тему: "${weekTopics[i]}". С эмодзи, дружелюбно, с полезным советом. Только текст поста. Без markdown форматирования — никаких **, *, _, # символов.`
+          }]
+        })
+      });
+      const data = await res.json();
+      if (!data.error) {
+        addToQueue(weekTopics[i], data.content[0].text, activeDays[i] + ' ' + time);
+        generated++;
+        state.postCount++;
+      }
+    } catch(e) {}
+    await new Promise(r => setTimeout(r, 500));
+  }
+
+  document.getElementById('sideStatPosts').textContent = state.postCount;
+  document.getElementById('statusText').textContent = `${generated} POSTS READY`;
+  setLoading(btn, false, 'schedLoadBar');
+});
+
+// ── Queue ─────────────────────────────────────────────────────────
+function addToQueue(topic, text, time) {
+  const t = time || document.getElementById('postTime').value;
+  state.queue.push({ topic, text, time: t, id: Date.now() });
+  state.queue = state.queue.slice(0, 20);
+  document.getElementById('sideStatQueue').textContent = state.queue.length;
+  if(document.getElementById('rpStatQueue2')) document.getElementById('rpStatQueue2').textContent = state.queue.length;
+  renderQueue();
+}
+
+function renderQueue() {
+  const list = document.getElementById('queueList');
+  if (state.queue.length === 0) {
+    list.innerHTML = '<div style="text-align:center; color:var(--muted); font-size:13px; padding:20px">Очередь пуста.</div>';
+    return;
+  }
+  list.innerHTML = state.queue.map(item => `
+    <div class="queue-item">
+      <div class="queue-dot ready"></div>
+      <div class="queue-info">
+        <div class="queue-title">${item.topic.slice(0,45)}${item.topic.length>45?'...':''}</div>
+        <div class="queue-time">📅 ${item.time}</div>
+      </div>
+      <button class="queue-remove" onclick="removeFromQueue(${item.id})">×</button>
+    </div>
+  `).join('');
+}
+
+function removeFromQueue(id) {
+  state.queue = state.queue.filter(i => i.id !== id);
+  document.getElementById('sideStatQueue').textContent = state.queue.length;
+  renderQueue();
+}
+
+// ── Days ──────────────────────────────────────────────────────────
+document.querySelectorAll('.day-btn').forEach(btn => {
+  btn.addEventListener('click', () => btn.classList.toggle('active'));
+});
+
+// ── Settings ──────────────────────────────────────────────────────
+document.getElementById('saveSettingsBtn').addEventListener('click', () => {
+  const data = {
+    channelName: document.getElementById('channelName').value,
+    tarifcheckLink: document.getElementById('tarifcheckLink').value,
+    botToken: document.getElementById('botToken').value,
+    hfKey: document.getElementById('hfApiKey').value
+  };
+  localStorage.setItem('tg_studio', JSON.stringify(data));
+  const btn = document.getElementById('saveSettingsBtn');
+  btn.textContent = '✅ Сохранено!';
+  setTimeout(() => btn.textContent = '💾 Сохранить настройки', 2000);
+});
+
+// ── Telegram Preview ──────────────────────────────────────────────
+function updateTgPreview(text, imgUrl) {
+  const mock = document.getElementById('tgMock');
+  const channelName = document.getElementById('channelName').value || 'Авто в Германии';
+  const now = new Date();
+  const time = now.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+
+  mock.innerHTML = `
+    <div class="tg-message">
+      <div class="tg-channel-name">📢 ${channelName}</div>
+      ${imgUrl ? `<img class="tg-img" src="${imgUrl}" style="display:block">` : ''}
+      <div class="tg-text">${text.slice(0, 600)}${text.length > 600 ? '...' : ''}</div>
+      <div class="tg-time">${time} ✓✓</div>
+    </div>
+  `;
+}
+
+// ── Helpers ───────────────────────────────────────────────────────
+function setLoading(btn, on, barId) {
+  btn.classList.toggle('loading', on);
+  btn.disabled = on;
+  document.getElementById(barId)?.classList.toggle('visible', on);
+}
+
+function showError(id, msg) {
+  const el = document.getElementById(id);
+  el.textContent = msg;
+  el.classList.add('visible');
+}
+
+// ── Publish to Telegram ───────────────────────────────────────────
+document.getElementById('publishTgBtn').addEventListener('click', async () => {
+  const token = document.getElementById('botToken').value.trim();
+  const chatId = document.getElementById('channelUsername').value.trim();
+
+  if (!token) {
+    showError('publishError', '❌ Вставь Bot Token в настройках (⚙️ вкладка Настройки)');
+    return;
+  }
+  if (!chatId) {
+    showError('publishError', '❌ Укажи @username канала в настройках');
+    return;
+  }
+  if (!state.lastPost) {
+    showError('publishError', '❌ Сначала сгенерируй пост');
+    return;
+  }
+
+  const btn = document.getElementById('publishTgBtn');
+  btn.textContent = '⏳ Публикую...';
+  btn.disabled = true;
+  document.getElementById('publishError').classList.remove('visible');
+  document.getElementById('publishSuccess').style.display = 'none';
+
+  try {
+    const channel = chatId.startsWith('@') ? chatId : '@' + chatId;
+    const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'anthropic-dangerous-direct-browser-access': 'true' },
+      body: JSON.stringify({
+        chat_id: channel,
+        text: state.lastPost,
+        parse_mode: 'HTML'
+      })
+    });
+    const data = await res.json();
+    if (data.ok) {
+      document.getElementById('publishSuccess').style.display = 'block';
+      document.getElementById('statusText').textContent = 'PUBLISHED ✓';
+    } else {
+      throw new Error(data.description || 'Ошибка Telegram API');
+    }
+  } catch(e) {
+    let msg = e.message;
+    if (msg.includes('chat not found')) msg = 'Канал не найден. Проверь @username и что бот добавлен как админ';
+    if (msg.includes('bot was blocked')) msg = 'Бот заблокирован. Добавь бота как администратора канала';
+    if (msg.includes('Unauthorized')) msg = 'Неверный Bot Token. Скопируй его заново из @BotFather';
+    showError('publishError', '❌ ' + msg);
+    document.getElementById('statusText').textContent = 'ERROR';
+  } finally {
+    btn.textContent = '🚀 Опубликовать в канал';
+    btn.disabled = false;
+  }
+});
+
+// ── Comments tab ──────────────────────────────────────────────────
+let commentTopic = 'Какую страховку выбрать для машины в Германии';
+let commentTone = 'полезный совет из личного опыта, коротко';
+let mentionOn = true;
+
+document.querySelectorAll('#commentTopicGrid .topic-chip').forEach(chip => {
+  chip.addEventListener('click', () => {
+    document.querySelectorAll('#commentTopicGrid .topic-chip').forEach(c => c.classList.remove('active'));
+    chip.classList.add('active');
+    const customInput = document.getElementById('customCommentInput');
+    if (chip.dataset.topic === 'custom-comment') {
+      customInput.style.display = 'block';
+      customInput.focus();
+      commentTopic = customInput.value;
+    } else {
+      customInput.style.display = 'none';
+      commentTopic = chip.dataset.topic;
+    }
+  });
+});
+
+document.getElementById('customCommentInput').addEventListener('input', e => {
+  commentTopic = e.target.value;
+});
+
+document.querySelectorAll('#commentToneOptions .opt-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('#commentToneOptions .opt-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    commentTone = btn.dataset.tone;
+  });
+});
+
+document.getElementById('t-mention').addEventListener('click', function() {
+  mentionOn = !mentionOn;
+  this.classList.toggle('on', mentionOn);
+});
+
+async function generateComment() {
+  if (!commentTopic) { showError('commentError', 'Выбери тему обсуждения'); return; }
+
+  const btn = document.getElementById('genCommentBtn');
+  setLoading(btn, true, 'commentLoadBar');
+  document.getElementById('commentError').classList.remove('visible');
+  document.getElementById('commentResult').classList.remove('visible');
+  document.getElementById('statusText').textContent = 'GENERATING...';
+
+  const channelName = document.getElementById('channelName').value || 'Авто в Германии';
+  const channelUser = document.getElementById('channelUsername').value || 'канале';
+  const mentionText = mentionOn
+    ? `В самом конце добавь одну ненавязчивую фразу типа "Кстати, у меня в канале ${channelUser} есть подробный разбор этой темы" — очень коротко и естественно.`
+    : 'Не упоминай никакой канал.';
+
+  const prompt = `Ты участник русскоязычной группы в Telegram для эмигрантов в Германии.
+
+В группе идёт обсуждение на тему: "${commentTopic}"
+
+Напиши комментарий в стиле: ${commentTone}
+
+Требования:
+- Максимум 4-5 предложений
+- Разговорный живой русский язык
+- Конкретный факт или совет из немецких реалий
+- Выглядит как написано обычным человеком, не ботом
+- Без markdown форматирования, без **, без #
+- Без приветствий типа "Привет всем!"
+${mentionText}
+
+Только текст комментария, без пояснений.`;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'anthropic-dangerous-direct-browser-access': 'true' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 300,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error.message);
+    const text = data.content[0].text;
+    document.getElementById('commentOutput').textContent = text;
+    document.getElementById('commentResult').classList.add('visible');
+    document.getElementById('statusText').textContent = 'DONE ✓';
+    state.commentCount = (state.commentCount||0) + 1;
+    if(document.getElementById('rpStatComments')) document.getElementById('rpStatComments').textContent = state.commentCount;
+  } catch(e) {
+    showError('commentError', 'Ошибка: ' + e.message);
+    document.getElementById('statusText').textContent = 'ERROR';
+  } finally {
+    setLoading(btn, false, 'commentLoadBar');
+  }
+}
+
+document.getElementById('genCommentBtn').addEventListener('click', generateComment);
+document.getElementById('regenCommentBtn').addEventListener('click', generateComment);
+
+document.getElementById('copyCommentBtn').addEventListener('click', () => {
+  const text = document.getElementById('commentOutput').textContent;
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.getElementById('copyCommentBtn');
+    btn.textContent = '✅ Скопировано!';
+    setTimeout(() => btn.textContent = '📋 Копировать', 2000);
+  });
+});
+</script>
+</body>
+</html>
